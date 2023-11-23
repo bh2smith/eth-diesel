@@ -1,3 +1,91 @@
+use std::str::FromStr;
+
+use alloy_primitives::{Address as AlloyAddress, FixedBytes as AlloyBytes, U256 as AlloyU256};
+use bigdecimal::BigDecimal;
+use diesel::{
+    self,
+    data_types::PgNumeric,
+    deserialize::{self, FromSql},
+    pg::{Pg, PgValue},
+    sql_types::{Binary, Numeric, SqlType},
+    Queryable,
+};
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Address(pub AlloyAddress);
+
+/// ! WARNING! This function is meant to be used by Diesel
+/// for Ethereum address fields encoded in postgres
+/// as BYTEA type (since there is no fixed length type)
+impl From<Vec<u8>> for Address {
+    fn from(value: Vec<u8>) -> Self {
+        Self(AlloyAddress::from_slice(value.as_slice()))
+    }
+}
+
+impl Queryable<Binary, Pg> for Address {
+    type Row = Vec<u8>;
+
+    fn build(row: Self::Row) -> deserialize::Result<Self> {
+        Ok(row.into())
+    }
+}
+
+// impl FromSql<diesel::sql_types::Nullable<diesel::sql_types::Binary>, Pg> for Address {
+//     fn from_sql(
+//         bytes: <Pg as diesel::backend::Backend>::RawValue<'_>,
+//     ) -> deserialize::Result<Self> {
+//         Ok(Address::from(bytes.as_bytes().to_vec()))
+//     }
+// }
+
+// impl FromSql<Address, Pg> for Address {
+//     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
+//         Ok(Address::from(bytes.as_bytes().to_vec()))
+//     }
+// }
+
+// impl FromSql<Address, Pg> for Address {
+//     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
+//         Ok(Address::from(bytes.as_bytes().to_vec()))
+//     }
+// }
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Bytes32(pub AlloyBytes<32>);
+
+impl From<Vec<u8>> for Bytes32 {
+    fn from(value: Vec<u8>) -> Self {
+        Self(AlloyBytes::from_slice(value.as_slice()))
+    }
+}
+
+impl Queryable<Binary, Pg> for Bytes32 {
+    type Row = Vec<u8>;
+
+    fn build(row: Self::Row) -> deserialize::Result<Self> {
+        Ok(row.into())
+    }
+}
+
+/// Define Custom U256 type (although this is not really the problem)
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, SqlType, Hash)]
+#[diesel(postgres_type(name = "U256"))]
+pub struct U256(pub AlloyU256);
+
+impl FromSql<Numeric, Pg> for U256 {
+    fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
+        let big_decimal: BigDecimal = PgNumeric::from_sql(bytes)?.try_into()?;
+        Ok(U256::from(big_decimal))
+    }
+}
+
+impl From<BigDecimal> for U256 {
+    fn from(val: BigDecimal) -> Self {
+        U256(AlloyU256::from_str(&val.to_string()).expect("Invalid value"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     // use super::*;

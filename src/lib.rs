@@ -1,4 +1,4 @@
-pub mod diesel;
+pub mod db;
 pub mod models;
 pub mod schema;
 pub mod types;
