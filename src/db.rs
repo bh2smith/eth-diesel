@@ -40,7 +40,7 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    // use serde_json::json;
+    use serde_json::json;
 
     use super::*;
 
@@ -56,22 +56,20 @@ mod tests {
         let mut db = Database::new_from_env();
         let data = db.get_eth_data();
         println!("Data Debug: {:?}", data);
-        let json_string = serde_json::to_string(&data).unwrap();
-        println!("Data JSON {:?}", json_string);
-        // This doesn't work yet
-        // assert_eq!(
-        //     json_string,
-        //     json!(
-        //         [{
-        //             "address":"0x92be2f02c94d214f8d38ece700385471d9a66c0a",
-        //             "u256":"9999999999999999999999999999999999999999999999",
-        //             "block_number":1,
-        //             "tx_hash":"0xb44c4e99de65f6a5f4a2162a76241cf858c09ff218f3023a3ac03acc17fea885",
-        //             "optional_address":null,
-        //             "optional_u256":null
-        //         }
-        //         ]
-        //     )
-        // )
+        let json_value = serde_json::to_value(&data).unwrap();
+        assert_eq!(
+            json_value,
+            json!(
+                [{
+                    "address":"0x92be2f02c94d214f8d38ece700385471d9a66c0a",
+                    "u256":"9999999999999999999999999999999999999999999999",
+                    "block_number":1,
+                    "tx_hash":"0xb44c4e99de65f6a5f4a2162a76241cf858c09ff218f3023a3ac03acc17fea885",
+                    "optional_address":null,
+                    "optional_u256":null
+                }
+                ]
+            )
+        )
     }
 }
