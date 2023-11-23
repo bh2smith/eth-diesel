@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use alloy_primitives::{Address as AlloyAddress, FixedBytes as AlloyBytes, U256 as AlloyU256};
+use alloy_primitives::{hex, Address as AlloyAddress, FixedBytes as AlloyBytes, U256 as AlloyU256};
 use bigdecimal::BigDecimal;
 use diesel::{
     self,
@@ -10,6 +10,7 @@ use diesel::{
     sql_types::{Binary, Numeric, SqlType},
     Queryable,
 };
+use serde::Serialize;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Address(pub AlloyAddress);
@@ -28,6 +29,21 @@ impl Queryable<Binary, Pg> for Address {
 
     fn build(row: Self::Row) -> deserialize::Result<Self> {
         Ok(row.into())
+    }
+}
+
+impl Serialize for Address {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut bytes = [0u8; 2 + 20 * 2];
+        bytes[..2].copy_from_slice(b"0x");
+        // Can only fail if the buffer size does not match but we know it is correct.
+        hex::encode_to_slice(self.0 .0, &mut bytes[2..]).unwrap();
+        // Hex encoding is always valid utf8.
+        let s = std::str::from_utf8(&bytes).unwrap();
+        serializer.serialize_str(s)
     }
 }
 
@@ -65,6 +81,21 @@ impl Queryable<Binary, Pg> for Bytes32 {
 
     fn build(row: Self::Row) -> deserialize::Result<Self> {
         Ok(row.into())
+    }
+}
+
+impl Serialize for Bytes32 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut bytes = [0u8; 2 + 32 * 2];
+        bytes[..2].copy_from_slice(b"0x");
+        // Can only fail if the buffer size does not match but we know it is correct.
+        hex::encode_to_slice(self.0 .0, &mut bytes[2..]).unwrap();
+        // Hex encoding is always valid utf8.
+        let s = std::str::from_utf8(&bytes).unwrap();
+        serializer.serialize_str(s)
     }
 }
 

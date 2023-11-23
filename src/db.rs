@@ -53,6 +53,8 @@ mod tests {
     fn test_get_eth() {
         let mut db = Database::new_from_env();
         let data = db.get_eth_data();
-        println!("Data {:?}", data);
+        println!("Data Debug: {:?}", data);
+        let json_string = serde_json::to_string(&data).unwrap();
+        println!("Data JSON {:?}", json_string);
     }
 }

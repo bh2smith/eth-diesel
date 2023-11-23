@@ -1,6 +1,7 @@
 use crate::types::{Address, Bytes32};
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
+use serde::Serialize;
 
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = crate::schema::types)]
@@ -14,7 +15,7 @@ pub struct NativeType {
     pub optional_u256: Option<BigDecimal>,
 }
 
-#[derive(Queryable, Selectable, Debug)]
+#[derive(Queryable, Selectable, Debug, Serialize)]
 #[diesel(table_name = crate::schema::types)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct EthType {
