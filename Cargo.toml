@@ -1,0 +1,10 @@
+[package]
+name = "eth-diesel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy-primitives = "0.4.2"
+bigdecimal = { version = "0.3.1", features = ["serde"] }
+diesel = { version = "2.1.1", features = ["postgres", "numeric", "serde_json"] }
+dotenvy = "0.15"
