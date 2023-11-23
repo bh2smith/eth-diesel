@@ -2,6 +2,7 @@ use crate::models::EthType;
 
 use {
     crate::models::NativeType,
+    crate::schema::*,
     diesel::{pg::PgConnection, prelude::*},
     dotenvy::dotenv,
     std::env,
@@ -25,21 +26,39 @@ impl Database {
         Self::new(&database_url)
     }
 
+    pub fn add_row(&mut self, record: EthType) {
+        let result = diesel::insert_into(crate::schema::types::dsl::types)
+            .values(record.clone())
+            .on_conflict((types::address, types::u256))
+            .do_update()
+            .set(record)
+            .execute(&mut self.client)
+            .unwrap();
+        println!("Added {} record", result);
+    }
+
+    // pub fn save_nft(&mut self, nft: &Nft) {
+    //     let result = diesel::insert_into(nfts::dsl::nfts)
+    //         .values(nft)
+    //         .on_conflict((nfts::contract_address, nfts::token_id))
+    //         .do_update()
+    //         .set(nft)
+    //         .execute(&mut self.client);
+    //     handle_insert_result(result, 1, format!("save_nft {:?}", nft))
+    // }
+
     pub fn get_native_data(&mut self) -> Vec<NativeType> {
-        crate::schema::types::dsl::types
-            .load(&mut self.client)
-            .unwrap()
+        types::dsl::types.load(&mut self.client).unwrap()
     }
 
     pub fn get_eth_data(&mut self) -> Vec<EthType> {
-        crate::schema::types::dsl::types
-            .load(&mut self.client)
-            .unwrap()
+        types::dsl::types.load(&mut self.client).unwrap()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::types::Address;
     use serde_json::json;
 
     use super::*;
@@ -67,9 +86,29 @@ mod tests {
                     "tx_hash":"0xb44c4e99de65f6a5f4a2162a76241cf858c09ff218f3023a3ac03acc17fea885",
                     "optional_address":null,
                     "optional_u256":null
+                },
+                {
+                    "address":"0x0000000000000000000000000000000000000000",
+                    "u256":"9999999999999999999999999999999999999999999999",
+                    "block_number":1,
+                    "tx_hash":"0xb44c4e99de65f6a5f4a2162a76241cf858c09ff218f3023a3ac03acc17fea885",
+                    "optional_address":null,
+                    "optional_u256":null
                 }
                 ]
             )
-        )
+        );
+
+        println!("As JSON String: {}", serde_json::to_string(&data).unwrap());
+    }
+
+    #[test]
+    fn test_add_record() {
+        let mut db = Database::new_from_env();
+        let mut data = db.get_eth_data()[0].clone();
+        data.address = Address(alloy_primitives::Address::ZERO);
+        db.add_row(data);
+
+        assert!(db.get_eth_data().len() > 1);
     }
 }

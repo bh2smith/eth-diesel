@@ -7,12 +7,15 @@ use diesel::{
     data_types::PgNumeric,
     deserialize::{self, FromSql},
     pg::{Pg, PgValue},
+    serialize::ToSql,
     sql_types::{Binary, Numeric, SqlType},
     Queryable,
 };
 use serde::Serialize;
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, SqlType)]
+#[diesel(postgres_type(name = "address"))]
+#[diesel(not_sized)]
 pub struct Address(pub AlloyAddress);
 
 /// ! WARNING! This function is meant to be used by Diesel
@@ -21,6 +24,12 @@ pub struct Address(pub AlloyAddress);
 impl From<Vec<u8>> for Address {
     fn from(value: Vec<u8>) -> Self {
         Self(AlloyAddress::from_slice(value.as_slice()))
+    }
+}
+
+impl From<Address> for Vec<u8> {
+    fn from(value: Address) -> Self {
+        value.0.as_slice().to_vec()
     }
 }
 
@@ -47,6 +56,25 @@ impl Serialize for Address {
     }
 }
 
+impl<DB> ToSql<Binary, DB> for Address
+where
+    DB: diesel::backend::Backend,
+    [u8]: ToSql<Binary, DB>,
+{
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut diesel::serialize::Output<'b, '_, DB>,
+    ) -> diesel::serialize::Result {
+        self.0 .0.as_slice().to_sql(out)
+    }
+}
+
+// impl ToSql<Binary, Pg> for Address {
+//     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+//         self.0 .0.as_slice().to_sql(out)
+//     }
+// }
+
 // impl FromSql<diesel::sql_types::Nullable<diesel::sql_types::Binary>, Pg> for Address {
 //     fn from_sql(
 //         bytes: <Pg as diesel::backend::Backend>::RawValue<'_>,
@@ -61,13 +89,14 @@ impl Serialize for Address {
 //     }
 // }
 
-// impl FromSql<Address, Pg> for Address {
-//     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-//         Ok(Address::from(bytes.as_bytes().to_vec()))
-//     }
-// }
+impl FromSql<Address, Pg> for Address {
+    fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
+        Ok(Address::from(bytes.as_bytes().to_vec()))
+    }
+}
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, SqlType)]
+#[diesel(not_sized)]
 pub struct Bytes32(pub AlloyBytes<32>);
 
 impl From<Vec<u8>> for Bytes32 {
@@ -99,6 +128,11 @@ impl Serialize for Bytes32 {
     }
 }
 
+impl From<Bytes32> for Vec<u8> {
+    fn from(value: Bytes32) -> Self {
+        value.0.as_slice().to_vec()
+    }
+}
 /// Define Custom U256 type (although this is not really the problem)
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, SqlType, Hash)]
 #[diesel(postgres_type(name = "U256"))]
